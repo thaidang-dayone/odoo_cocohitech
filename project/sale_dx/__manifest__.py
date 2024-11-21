@@ -8,8 +8,10 @@
     'category': 'Sales',
     'depends': ['sale_management', 'contact_dx'],
     'data': [
-        # List your data files here, e.g. 'views/contact_view.xml'
-    ],
+        'views/sale_order_views.xml',
+        'views/partner_views.xml',
+        'security/ir.model.access.csv',
+        ],
     'installable': True,
     'application': True,
     'auto_install': False,
