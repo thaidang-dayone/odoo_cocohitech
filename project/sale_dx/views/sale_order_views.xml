@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_custom" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='order_details']" position="after">
+                <group name="financial_details">
+                    <group string="Exchange Rates">
+                        <field name="is_china_partner" invisible="0" />
+                        <field name="usd_vnd_rate"/>
+                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+                    </group>
+                    <group string="Payment Details">
+                        <field name="deposit_amount"/>
+                        <field name="remaining_amount" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <!-- Costs Tab -->
+                <page string="Costs" name="total_costs">
+                    <group>
+                        <field name="supplier_id" domain="[('is_supplier','=', True)]"/>
+                        <field name="supplier_product_cost_ids">
+                            <tree editable="bottom">
+                                <field name="supplier_id" optional="hide" />
+                                <field name="supplier_product_id"/>
+                                <field name="quantity" />
+                                <field name="currency_id"/>
+                                <field name="cost" sum="Total"/>
+                            </tree>
+                        </field>
+                    </group>
+
+                    <group>
+                        <field name="document_cost_ids">
+                            <tree editable="bottom">
+                                <field name="document_id"/>
+                                <field name="document_file"/>
+                                <field name="state" />
+                                <field name="currency_id"/>
+                                <field name="cost" sum="Total"/>
+                                <button name="action_done" type="object" icon="fa-check"
+                                    aria-label="Done" title="Done" class="float-end pe-0"
+                                    readonly="True" invisible="state == 'done'"/>
+                                <button name="action_cancel" type="object" icon="fa-undo"
+                                    aria-label="Cancel" title="Cancel" class="float-end pe-0"
+                                    readonly="True" invisible="state == 'cancel'"/>
+                            </tree>
+                        </field>
+                    </group>
+                    
+                    <group>
+                        <field name="other_cost_ids">
+                            <tree editable="bottom">
+                                <field name="name"/>
+                                <field name="cost_type"/>
+                                <field name="currency_id"/>
+                                <field name="cost" sum="Total"/>
+                            </tree>
+                        </field>
+                    </group>
+
+                    <group>
+                        <field name="total_document_cost"/>
+                        <field name="total_supplier_product_cost"/>
+                        <field name="other_costs" />
+                    </group>
+                </page>
+
+                <!-- Chinese Partner Special Processing Tab -->
+                <page string="China Partner Details" name="china_partner_details" 
+                      invisible="not is_china_partner">
+                    <group>
+                        <field name="china_partner_adjustment"/>
+                        <field name="china_partner_cash_conversion"/>
+                    </group>
+                    <footer>
+                        <button name="process_china_partner_invoice" 
+                                string="Process China Partner Invoice" 
+                                type="object" 
+                                class="btn-primary"
+                                confirm="Are you sure you want to process this invoice for the Chinese partner?"/>
+                    </footer>
+                </page>
+            </xpath>
+            
+        </field>
+    </record>
+
+    <record id="view_order_form_quote_inherit_custom" model="ir.ui.view">
+        <field name="name">sale.order.form.quote.inherit.custom</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale_management.sale_order_form_quote"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='optional_products']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+                
+</odoo>

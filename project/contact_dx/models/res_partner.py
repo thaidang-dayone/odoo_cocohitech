@@ -5,5 +5,6 @@ class ResPartner(models.Model):
 
     is_china_partner = fields.Boolean(string='Is China Partner?')
     is_supplier = fields.Boolean(string='Is a Supplier')
-    supplier_product_ids = fields.One2many('supplier.product', 'partner_id', string='Supplier Products')
+    supplier_product_ids = fields.One2many('supplier.product',
+                                           'partner_id', string='Supplier Products')
     

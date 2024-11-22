@@ -6,10 +6,10 @@
     'author': 'thaidt',
     'website': 'http://www.dayoneteams.com',
     'category': 'Sales',
-    'depends': ['sale_management', 'contact_dx'],
+    'depends': ['sale', 'contact_dx'],
     'data': [
         'views/sale_order_views.xml',
-        'views/partner_views.xml',
+        'views/document_digital_view.xml',
         'security/ir.model.access.csv',
         ],
     'installable': True,

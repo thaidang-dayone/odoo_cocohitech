@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_sale_order_document_cost_user,sale.order.document.cost,model_sale_order_document_cost,base.group_user,1,1,1,1
 access_sale_order_supplier_product_user,sale.order.supplier.product,model_sale_order_supplier_product,base.group_user,1,1,1,1
+access_document_digital_user,document.digital,model_document_digital,base.group_user,1,1,1,1
+access_sale_order_other_cost_user,sale.order.other.cost,model_sale_order_other_costs,base.group_user,1,1,1,1
