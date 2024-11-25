@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="product_product_consultant_deposit" model="product.product">
+        <field name="name">Special Deduction</field>
+        <field name="detailed_type">service</field>
+    </record>
+
+</odoo>

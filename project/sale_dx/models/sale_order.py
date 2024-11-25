@@ -100,6 +100,33 @@ class SaleOrder(models.Model):
         store=True
     )
 
+    @api.model_create_multi
+    def create(self, vals):
+        order = super(SaleOrder, self).create(vals)
+        if 'deposit_amount' in vals and vals['deposit_amount'] > 0:
+            order._add_or_update_special_deduction_line()
+        return order
+
+    def write(self, vals):
+        res = super(SaleOrder, self).write(vals)
+        if 'deposit_amount' in vals and vals['deposit_amount'] > 0:
+            self._add_or_update_special_deduction_line()
+        return res
+
+    def _add_or_update_special_deduction_line(self):
+        for order in self:
+            deduction_line = order.order_line.filtered(lambda line: line.name == 'Special Deduction')
+            if deduction_line:
+                deduction_line.price_unit = -order.deposit_amount
+            else:
+                self.env['sale.order.line'].create({
+                    'order_id': order.id,
+                    'name': 'Special Deduction',
+                    'product_uom_qty': 1,
+                    'price_unit': -order.deposit_amount,
+                    'product_id': self.env.ref('product.product_product_consultant_deposit').id,
+                })
+    
     @api.depends('amount_total', 'deposit_amount')
     def _compute_remaining_amount(self):
         for order in self:

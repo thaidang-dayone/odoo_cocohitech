@@ -8,7 +8,8 @@
     'category': 'CRM',
     'depends': ['crm'],
     'data': [
-        # List your data files here, e.g. 'views/contact_view.xml'
+        'views/crm_lead_view.xml',
+        'views/sale_order_view.xml',
     ],
     'installable': True,
     'application': True,

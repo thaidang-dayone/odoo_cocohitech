@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_order_tree_decorate" model="ir.ui.view">
+        <field name="name">sale.order.tree.decorate</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_status']" position="after">
+                <field name="is_overdue" optional="show" />
+            </xpath>
+            <xpath expr="//tree" position="attributes">
+                <attribute name="decoration-danger">is_overdue</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_form_inherit_decorator" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.decorator</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='order_details']" position="after">
+                <group string="Shipping Information">
+                    <field name="estimated_departure_date"/>
+                    <field name="estimated_arrival_date"/>
+                    <field name="is_overdue" />
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
