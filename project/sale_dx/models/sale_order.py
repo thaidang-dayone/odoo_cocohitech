@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from datetime import datetime, timedelta
 from odoo.exceptions import ValidationError
 
 class SaleOrder(models.Model):
@@ -57,11 +58,12 @@ class SaleOrder(models.Model):
     # Chinese Customer Special Processing
     china_partner_adjustment = fields.Monetary(
         string='China Partner Price Adjustment', 
-        currency_field='currency_id'
+        compute='_compute_china_partner_special_processing', store=True
     )
     china_partner_cash_conversion = fields.Monetary(
         string='Cash Conversion Amount', 
-        currency_field='currency_id'
+        store=True,
+        compute='_compute_china_partner_special_processing',
     )
     #Compute amounts
     total_supplier_product_cost = fields.Monetary(
@@ -99,7 +101,95 @@ class SaleOrder(models.Model):
         compute='_compute_revenue_details',
         store=True
     )
+    # money with vnd
+    total_amount_vnd = fields.Monetary(
+        string='Total Amount VND', 
+        compute='_compute_price_convert_totals',
+        store=True
+    )
+    
+    state_transfer = fields.Selection([
+        ('draft_cont', 'Lấy rỗng'),
+        ('ready_to_pick', 'Kéo cont tới kho'),
+        ('packed', 'Đóng hàng đầy'),
+        ('ready_to_ship', 'Kéo lên cảng chờ xuất'),
+        ('reported', 'Tờ khai phân luồng'),
+        ('ready_to_load', 'Sẵn sàng lên tàu'),
+        ('exported', 'Xuất khẩu')
+    ], string='State Transfer', default='draft_cont')
+    
+    color_report = fields.Selection([
+        ('#00FF00', 'Xanh'),
+        ('#FFFF00', 'Vàng'),
+        ('#FF0000', 'Đỏ'),
+    ], string='Color Reported', copy=False)
+    
+    estimated_departure_date = fields.Datetime(string='Estimated Departure Date')
+    estimated_arrival_date = fields.Datetime(string='Estimated Arrival Date')
+    is_overdue = fields.Boolean(string='Is Overdue', compute='_compute_is_overdue', store=True)
 
+    @api.depends('estimated_arrival_date', 'remaining_amount')
+    def _compute_is_overdue(self):
+        for order in self:
+            if order.estimated_arrival_date:
+                overdue_date = order.estimated_arrival_date + timedelta(days=5)
+                if datetime.now() > overdue_date and order.remaining_amount > 0:
+                    order.is_overdue = True
+                else:
+                    order.is_overdue = False
+            else:
+                order.is_overdue = False
+
+    def _compute_color(self):
+        for order in self:
+            if order.is_overdue:
+                order.color = 2  # Red color
+            else:
+                order.color = 0  # Default color
+
+    color = fields.Integer(string='Color', compute='_compute_color', store=True)
+    
+    # def action_transfer_to_next_state(self):
+    #     state_sequence = [
+    #         'draft_cont', 
+    #         'ready_to_pick', 
+    #         'packed', 
+    #         'ready_to_ship', 
+    #         'reported', 
+    #         'ready_to_load', 
+    #         'exported'
+    #     ]
+        
+    #     current_index = state_sequence.index(self.state_transfer)
+        
+    #     if current_index < len(state_sequence) - 1:
+    #         next_state = state_sequence[current_index + 1]
+    #         self.state_transfer = next_state
+    
+    def action_to_ready_to_pick(self):
+        self.state_transfer = 'ready_to_pick'
+    
+    def action_to_packed(self):
+        self.state_transfer = 'packed'
+    
+    def action_to_ready_to_ship(self):
+        self.state_transfer = 'ready_to_ship'
+    
+    def action_to_reported(self):
+        self.state_transfer = 'reported'
+    
+    def action_to_ready_to_load(self):
+        self.state_transfer = 'ready_to_load'
+    
+    def action_to_exported(self):
+        self.state_transfer = 'exported'
+
+    @api.depends_context('lang') 
+    @api.depends('currency_id', 'amount_total', 'usd_vnd_rate' )
+    def _compute_price_convert_totals(self):
+        for order in self:
+            order.total_amount_vnd = order.amount_total*order.usd_vnd_rate
+    
     @api.model_create_multi
     def create(self, vals):
         order = super(SaleOrder, self).create(vals)
@@ -124,7 +214,7 @@ class SaleOrder(models.Model):
                     'name': 'Special Deduction',
                     'product_uom_qty': 1,
                     'price_unit': -order.deposit_amount,
-                    'product_id': self.env.ref('product.product_product_consultant_deposit').id,
+                    'product_id': self.env.ref('sale_dx.product_product_consultant_deposit').id,
                 })
     
     @api.depends('amount_total', 'deposit_amount')
@@ -145,86 +235,103 @@ class SaleOrder(models.Model):
         # Implement logic to fetch current RMB/USD rate
         return 0.14  # Example rate
 
-    def process_china_partner_invoice(self, adjusted_amount):
+    @api.depends('is_china_partner', 'deposit_amount')
+    def _compute_china_partner_special_processing(self):
         """
         Special processing for Chinese partners
-        - Adjust invoice amount
         - Calculate cash conversion
         """
-        self.ensure_one()
-        if not self.is_china_partner:
-            raise ValidationError("This method is only for Chinese partners")
+        if self.is_china_partner:
+        #     raise ValidationError("This method is only for Chinese partners")
         
         # Store the price adjustment
-        self.china_partner_adjustment = self.amount_total - adjusted_amount
+            self.china_partner_adjustment = self.deposit_amount
+            self.china_partner_cash_conversion = self.deposit_amount / self.rmb_usd_rate
         
-        # Calculate cash conversion based on RMB/USD rate
-        cash_conversion_usd = self.china_partner_adjustment
-        cash_conversion_rmb = cash_conversion_usd * self.rmb_usd_rate
-        self.china_partner_cash_conversion = cash_conversion_rmb
+    
+    def confirm_receive_deposit(self):
+        for order in self:
+            if order.is_china_partner:
+                order.china_partner_adjustment = 0
+            order._compute_revenue_details()
 
-        # Optionally create an account move for tracking
-        self._create_china_partner_adjustment_move()
+        # self._create_china_partner_adjustment_move()
 
-    def _create_china_partner_adjustment_move(self):
-        """
-        Create an account move to track the price adjustment
-        """
-        move_vals = {
-            'move_type': 'entry',
-            'ref': f'China Partner Adjustment - {self.name}',
-            'sale_order_id': self.id,
-            'journal_id': self.env['account.journal'].search([('type', '=', 'misc')], limit=1).id,
-            'line_ids': [
-                (0, 0, {
-                    'name': 'Price Adjustment',
-                    'debit': self.china_partner_adjustment,
-                    'credit': 0,
-                    'account_id': self.env['account.account'].search([('account_type', '=', 'expense')], limit=1).id,
-                }),
-                (0, 0, {
-                    'name': 'Cash Conversion',
-                    'debit': 0,
-                    'credit': self.china_partner_cash_conversion,
-                    'account_id': self.env['account.account'].search([('account_type', '=', 'liability_current')], limit=1).id,
-                })
-            ]
-        }
-        return self.env['account.move'].create(move_vals)
+    # def _create_china_partner_adjustment_move(self):
+    #     """
+    #     Create an account move to track the price adjustment
+    #     """
+    #     move_vals = {
+    #         'move_type': 'entry',
+    #         'ref': f'China Partner Adjustment - {self.name}',
+    #         'sale_order_id': self.id,
+    #         'journal_id': self.env['account.journal'].search([('type', '=', 'misc')], limit=1).id,
+    #         'line_ids': [
+    #             (0, 0, {
+    #                 'name': 'Price Adjustment',
+    #                 'debit': self.china_partner_adjustment,
+    #                 'credit': 0,
+    #                 'account_id': self.env['account.account'].search([('account_type', '=', 'expense')], limit=1).id,
+    #             }),
+    #             (0, 0, {
+    #                 'name': 'Cash Conversion',
+    #                 'debit': 0,
+    #                 'credit': self.china_partner_cash_conversion,
+    #                 'account_id': self.env['account.account'].search([('account_type', '=', 'liability_current')], limit=1).id,
+    #             })
+    #         ]
+    #     }
+    #     return self.env['account.move'].create(move_vals)
     
 
     @api.depends(
-        'supplier_product_cost_ids.cost', 
-        'document_cost_ids.cost', 
-        'other_costs'
+        'supplier_product_cost_ids', 
+        'document_cost_ids', 
+        'other_costs',
     )
     def _compute_total_costs(self):
         for order in self:
-            order.total_supplier_product_cost = sum(
-                order.supplier_product_cost_ids.mapped('cost')
-            )
+            total_supplier_product_cost = 0
+            total_document_cost = 0
+            total_other_costs = 0
             
-            order.total_document_cost = sum(
-                order.document_cost_ids.mapped('cost')
-            )
-            order.other_costs = sum(
-                order.other_cost_ids.mapped('cost')
-            )
-            order.total_all_costs = (
-                order.total_supplier_product_cost + 
-                order.total_document_cost + 
-                order.other_costs
-            )
+            # Quy đổi giá của các sản phẩm về VND
+            for supplier_product_cost in order.supplier_product_cost_ids:
+                if supplier_product_cost.currency_id != self.env.ref('base.vnd'):
+                    rate = self._get_current_usd_vnd_rate() if supplier_product_cost.currency_id == self.env.ref('base.usd') else 1
+                    total_supplier_product_cost += supplier_product_cost.cost * rate.rate
+                else:
+                    total_supplier_product_cost += supplier_product_cost.cost
+            
+            for document_cost in order.document_cost_ids:
+                if document_cost.currency_id != self.env.ref('base.vnd'):
+                    rate = self._get_current_usd_vnd_rate() if document_cost.currency_id == self.env.ref('base.usd') else self._get_current_rmb_vnd_rate()
+                    total_document_cost += document_cost.cost * rate.rate
+                else:
+                    total_document_cost += document_cost.cost
+            
+            for other_cost in order.other_cost_ids:
+                if other_cost.currency_id != self.env.ref('base.vnd'):
+                    rate = self._get_current_usd_vnd_rate() if document_cost.currency_id == self.env.ref('base.usd') else self._get_current_rmb_vnd_rate()
+                    total_other_costs += other_cost.cost * rate.rate
+                else:
+                    total_other_costs += other_cost.cost
+            
+            order.total_supplier_product_cost = total_supplier_product_cost
+            order.total_document_cost = total_document_cost
+            order.other_costs = total_other_costs
+            order.total_all_costs = total_supplier_product_cost + total_document_cost + total_other_costs
 
     @api.depends(
         'amount_total', 
+        'total_amount_vnd',
         'total_all_costs', 
         'china_partner_adjustment'
     )
     def _compute_revenue_details(self):
         for order in self:
             # Tổng doanh thu (trừ điều chỉnh cho khách Trung Quốc nếu có)
-            order.total_revenue = order.amount_total - (
+            order.total_revenue = order.total_amount_vnd - (
                 order.china_partner_adjustment or 0
             )
             # Tổng lợi nhuận
@@ -234,22 +341,6 @@ class SaleOrder(models.Model):
                 (order.total_profit / order.total_revenue) * 100 
                 if order.total_revenue > 0 else 0
             )
-
-    def _get_adjustment_account(self):
-        """
-        Lấy tài khoản điều chỉnh
-        """
-        return self.env['account.account'].search([
-            ('account_type', '=', 'expense')
-        ], limit=1).id
-
-    def _get_revenue_account(self):
-        """
-        Lấy tài khoản doanh thu
-        """
-        return self.env['account.account'].search([
-            ('account_type', '=', 'income')
-        ], limit=1).id
 
     def action_confirm(self):
         """

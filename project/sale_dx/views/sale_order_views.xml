@@ -5,6 +5,69 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="state_transfer" 
+                       string="State Transfer" 
+                       invisible="state != 'sale'"/>
+            </xpath>
+            
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="color_report" 
+                       widget="color_picker" 
+                       string="Color Report" 
+                       style="margin-left: 10px;"
+                       readonly="state_transfer != 'reported' "
+                       />
+            </xpath>
+
+            <xpath expr="//header" position="inside">
+                <button name="action_to_ready_to_pick" 
+                        string="Pull cont" 
+                        type="object" 
+                        invisible="state_transfer != 'draft_cont'"
+                        />
+                
+                <button name="action_to_packed" 
+                        string="Full pack" 
+                        type="object"
+                        invisible="state_transfer != 'ready_to_pick'"
+                        />
+                
+                <button name="action_to_ready_to_ship" 
+                        string="Ready to ship" 
+                        type="object" 
+                        invisible="state_transfer != 'packed'"
+                        />
+                
+                <button name="action_to_reported" 
+                        string="Reported" 
+                        type="object" 
+                        invisible="state_transfer != 'reported'">
+                </button>
+                
+                <button name="action_to_ready_to_load" 
+                        string="Ready to load" 
+                        type="object" 
+                        invisible="state_transfer != 'ready_to_load'"
+                        />
+                
+                <button name="action_to_exported" 
+                        string="Exported" 
+                        type="object" 
+                        invisible="state_transfer != 'exported'"
+                        />
+                        
+            </xpath>
+
+            <xpath expr="//field[@name='tax_totals']" position="after">
+                <field name="total_amount_vnd" colspan="2" readonly="1"/>
+                <field name="total_revenue" colspan="2" readonly="1"/>
+                <field name="total_profit" colspan="2" readonly="1"/>
+            </xpath>
+            <!-- <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="after">
+                <field name="" />
+            </xpath> -->
             <xpath expr="//group[@name='order_details']" position="after">
                 <group name="financial_details">
                     <group string="Exchange Rates">
@@ -13,8 +76,8 @@
                         <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
                         <field name="rmb_usd_rate" invisible="not is_china_partner"/>
                     </group>
-                    <group string="Payment Details">
-                        <field name="deposit_amount"/>
+                    <group string="Payment Details" invisible="not is_china_partner">
+                        <field name="deposit_amount" />
                         <field name="remaining_amount" readonly="1"/>
                     </group>
                 </group>
@@ -29,6 +92,7 @@
                                 <field name="supplier_id" optional="hide" />
                                 <field name="supplier_product_id"/>
                                 <field name="quantity" />
+                                <field name="price" />
                                 <field name="currency_id"/>
                                 <field name="cost" sum="Total"/>
                             </tree>
@@ -79,15 +143,37 @@
                         <field name="china_partner_cash_conversion"/>
                     </group>
                     <footer>
-                        <button name="process_china_partner_invoice" 
-                                string="Process China Partner Invoice" 
+                        <button name="confirm_receive_deposit" 
+                                string="Receive Deposit" 
                                 type="object" 
                                 class="btn-primary"
-                                confirm="Are you sure you want to process this invoice for the Chinese partner?"/>
+                                confirm="Are you sure you received from Chinese partner?"/>
                     </footer>
                 </page>
             </xpath>
             
+            <xpath expr="//group[@name='order_details']" position="after">
+                <group string="Shipping Information">
+                    <field name="estimated_departure_date"/>
+                    <field name="estimated_arrival_date"/>
+                    <field name="is_overdue" />
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+    
+    <record id="view_order_tree_decorate" model="ir.ui.view">
+        <field name="name">sale.order.tree.decorate</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_status']" position="after">
+                <field name="is_overdue" optional="show" />
+            </xpath>
+            <xpath expr="//tree" position="attributes">
+                <attribute name="decoration-danger">is_overdue</attribute>
+            </xpath>
         </field>
     </record>
 

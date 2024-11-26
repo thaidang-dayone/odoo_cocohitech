@@ -17,7 +17,7 @@ class SaleOrderDocumentCost(models.Model):
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', required=True, ondelete='cascade')
     document_id = fields.Many2one('document.digital', string='Document', required=True)
     cost = fields.Monetary(string='Cost', required=True)
-    currency_id = fields.Many2one('res.currency', related='sale_order_id.currency_id', store=True)
+    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD','CNY'])]")
     upload_date = fields.Datetime(string='Upload Date', default=fields.Datetime.now)
     document_file = fields.Binary(string='Document File')
     state = fields.Selection([
@@ -33,8 +33,6 @@ class SaleOrderDocumentCost(models.Model):
         self.state = 'cancel'
         
     
-        
-    
 class SaleOrderSupplierProduct(models.Model):
     _name = 'sale.order.supplier.product'
     _description = 'Sale Order Supplier Product Costs'
@@ -47,9 +45,10 @@ class SaleOrderSupplierProduct(models.Model):
         domain ="[('partner_id', '=', supplier_id)]")
     cost = fields.Monetary(string='Cost', compute='_compute_cost', store=True)
     quantity = fields.Float(string='Quantity', default=1)
-    currency_id = fields.Many2one('res.currency', related='sale_order_id.currency_id', store=True)
+    price = fields.Float(string='Price')
+    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD'])]")
     
-    @api.depends('supplier_product_id', 'supplier_product_id.price', 'quantity')
+    @api.depends('supplier_product_id', 'quantity', 'price')
     def _compute_cost(self):
         for record in self:
             record.cost = record.supplier_product_id.price * record.quantity
@@ -67,7 +66,7 @@ class OtherCosts(models.Model):
         ('other', 'Other'),
     ], string='Cost Type', required=True)
     cost = fields.Monetary(string='Cost', required=True)
-    currency_id = fields.Many2one('res.currency', related='sale_order_id.currency_id', store=True)
+    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD','CNY'])]")
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', ondelete='cascade')
     
     

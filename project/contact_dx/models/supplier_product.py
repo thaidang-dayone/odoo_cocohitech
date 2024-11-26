@@ -8,6 +8,4 @@ class SupplierProduct(models.Model):
 
     partner_id = fields.Many2one('res.partner', string='Supplier', required=True)
     product_id = fields.Many2one('product.product', string='Product', required=True)
-    price = fields.Float(string='Price', required=True)
-    currency_id = fields.Many2one('res.currency', string='Currency', required=True,
-        default=lambda self: self.env.company.currency_id)
+    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD'])]")
