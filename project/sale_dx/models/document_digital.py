@@ -5,6 +5,7 @@ class DocumentDigital(models.Model):
     _description = 'Digital Document'
 
     name = fields.Char(string='Document Name', required=True)
+    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD','CNY'])]")
     description = fields.Text(string='Description')
     active = fields.Boolean(string='Active', default=True)
     
@@ -17,7 +18,7 @@ class SaleOrderDocumentCost(models.Model):
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', required=True, ondelete='cascade')
     document_id = fields.Many2one('document.digital', string='Document', required=True)
     cost = fields.Monetary(string='Cost', required=True)
-    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD','CNY'])]")
+    currency_id = fields.Many2one('res.currency', related='document_id.currency_id', store=True)
     upload_date = fields.Datetime(string='Upload Date', default=fields.Datetime.now)
     document_file = fields.Binary(string='Document File')
     state = fields.Selection([
@@ -46,12 +47,12 @@ class SaleOrderSupplierProduct(models.Model):
     cost = fields.Monetary(string='Cost', compute='_compute_cost', store=True)
     quantity = fields.Float(string='Quantity', default=1)
     price = fields.Float(string='Price')
-    currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD'])]")
+    currency_id = fields.Many2one('res.currency', related='supplier_product_id.currency_id')
     
     @api.depends('supplier_product_id', 'quantity', 'price')
     def _compute_cost(self):
         for record in self:
-            record.cost = record.supplier_product_id.price * record.quantity
+            record.cost = record.price * record.quantity
            
 class OtherCosts(models.Model):
     _name = 'sale.order.other.costs'
@@ -67,6 +68,7 @@ class OtherCosts(models.Model):
     ], string='Cost Type', required=True)
     cost = fields.Monetary(string='Cost', required=True)
     currency_id = fields.Many2one('res.currency', domain="[('name', 'in', ['VND','USD','CNY'])]")
+    description = fields.Text(string='Description')
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', ondelete='cascade')
     
     

@@ -6,7 +6,11 @@
     'author': 'thaidt',
     'website': 'http://www.dayoneteams.com',
     'category': 'Sales',
-    'depends': ['sale', 'contact_dx', 'crm'],
+    'depends': [
+        'sale', 
+        'contact_dx', 
+        'crm'
+        ],
     'data': [
         'views/sale_order_views.xml',
         'views/document_digital_view.xml',
@@ -17,4 +21,12 @@
     'installable': True,
     'application': True,
     'auto_install': False,
+    'assets': {
+        'web.assets_backend': [
+            'sale_dx/static/src/picker/limit_color_picker.js',
+            'sale_dx/static/src/picker/limit_color_picker.xml',
+            'sale_dx/static/src/picker/limit_color_picker.scss',
+            
+        ],
+    },
 }

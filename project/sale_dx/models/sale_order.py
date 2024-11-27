@@ -1,12 +1,18 @@
 from odoo import models, fields, api
-from datetime import datetime, timedelta
 from odoo.exceptions import ValidationError
+
+from random import randint
+from datetime import datetime, timedelta
+
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
-
+    
+    def _default_color(self):
+        list_num = [0, 1, 3, 8]
+        return list_num[randint(0, 3)]
+    
     supplier_id = fields.Many2one('res.partner', string='Supplier')
-
     document_cost_ids = fields.One2many(
         'sale.order.document.cost', 
         'sale_order_id', 
@@ -25,7 +31,7 @@ class SaleOrder(models.Model):
     # Exchange Rates
     usd_vnd_rate = fields.Float(
         string='USD/VND Exchange Rate', 
-        digits=(12, 0),
+        digits=(12, 2),
         default=lambda self: self._get_current_usd_vnd_rate()
     )
     # Deposit and Remaining Amount
@@ -46,12 +52,12 @@ class SaleOrder(models.Model):
     )
     rmb_vnd_rate = fields.Float(
         string='RMB/VND Exchange Rate', 
-        digits=(12, 0),
+        digits=(12, 2),
         default=lambda self: self._get_current_rmb_vnd_rate()
     )
     rmb_usd_rate = fields.Float(
         string='RMB/USD Exchange Rate', 
-        digits=(12, 0),
+        digits=(12, 2),
         default=lambda self: self._get_current_rmb_usd_rate()
     )
 
@@ -118,15 +124,12 @@ class SaleOrder(models.Model):
         ('exported', 'Xuất khẩu')
     ], string='State Transfer', default='draft_cont')
     
-    color_report = fields.Selection([
-        ('#00FF00', 'Xanh'),
-        ('#FFFF00', 'Vàng'),
-        ('#FF0000', 'Đỏ'),
-    ], string='Color Reported', copy=False)
+    color_report = fields.Integer(string='Color Reported', default=_default_color)
     
     estimated_departure_date = fields.Datetime(string='Estimated Departure Date')
     estimated_arrival_date = fields.Datetime(string='Estimated Arrival Date')
     is_overdue = fields.Boolean(string='Is Overdue', compute='_compute_is_overdue', store=True)
+    is_received_rmb = fields.Boolean(string='Is Received', default=False)
 
     @api.depends('estimated_arrival_date', 'remaining_amount')
     def _compute_is_overdue(self):
@@ -139,32 +142,6 @@ class SaleOrder(models.Model):
                     order.is_overdue = False
             else:
                 order.is_overdue = False
-
-    def _compute_color(self):
-        for order in self:
-            if order.is_overdue:
-                order.color = 2  # Red color
-            else:
-                order.color = 0  # Default color
-
-    color = fields.Integer(string='Color', compute='_compute_color', store=True)
-    
-    # def action_transfer_to_next_state(self):
-    #     state_sequence = [
-    #         'draft_cont', 
-    #         'ready_to_pick', 
-    #         'packed', 
-    #         'ready_to_ship', 
-    #         'reported', 
-    #         'ready_to_load', 
-    #         'exported'
-    #     ]
-        
-    #     current_index = state_sequence.index(self.state_transfer)
-        
-    #     if current_index < len(state_sequence) - 1:
-    #         next_state = state_sequence[current_index + 1]
-    #         self.state_transfer = next_state
     
     def action_to_ready_to_pick(self):
         self.state_transfer = 'ready_to_pick'
@@ -220,7 +197,7 @@ class SaleOrder(models.Model):
     @api.depends('amount_total', 'deposit_amount')
     def _compute_remaining_amount(self):
         for order in self:
-            order.remaining_amount = order.amount_total - order.deposit_amount
+            order.remaining_amount = order.amount_total
 
     def _get_current_usd_vnd_rate(self):
         # Implement logic to fetch current USD/VND rate
@@ -235,59 +212,32 @@ class SaleOrder(models.Model):
         # Implement logic to fetch current RMB/USD rate
         return 0.14  # Example rate
 
-    @api.depends('is_china_partner', 'deposit_amount')
+    @api.depends('deposit_amount')
     def _compute_china_partner_special_processing(self):
         """
         Special processing for Chinese partners
         - Calculate cash conversion
         """
-        if self.is_china_partner:
-        #     raise ValidationError("This method is only for Chinese partners")
-        
-        # Store the price adjustment
-            self.china_partner_adjustment = self.deposit_amount
-            self.china_partner_cash_conversion = self.deposit_amount / self.rmb_usd_rate
+        for order in self:
+            if order.is_china_partner:
+            #     raise ValidationError("This method is only for Chinese partners")
+            
+            # Store the price adjustment
+                order.china_partner_adjustment = order.deposit_amount
+                order.china_partner_cash_conversion = order.deposit_amount/order.rmb_usd_rate
         
     
     def confirm_receive_deposit(self):
         for order in self:
             if order.is_china_partner:
+                order.is_received_rmb = True
                 order.china_partner_adjustment = 0
             order._compute_revenue_details()
-
-        # self._create_china_partner_adjustment_move()
-
-    # def _create_china_partner_adjustment_move(self):
-    #     """
-    #     Create an account move to track the price adjustment
-    #     """
-    #     move_vals = {
-    #         'move_type': 'entry',
-    #         'ref': f'China Partner Adjustment - {self.name}',
-    #         'sale_order_id': self.id,
-    #         'journal_id': self.env['account.journal'].search([('type', '=', 'misc')], limit=1).id,
-    #         'line_ids': [
-    #             (0, 0, {
-    #                 'name': 'Price Adjustment',
-    #                 'debit': self.china_partner_adjustment,
-    #                 'credit': 0,
-    #                 'account_id': self.env['account.account'].search([('account_type', '=', 'expense')], limit=1).id,
-    #             }),
-    #             (0, 0, {
-    #                 'name': 'Cash Conversion',
-    #                 'debit': 0,
-    #                 'credit': self.china_partner_cash_conversion,
-    #                 'account_id': self.env['account.account'].search([('account_type', '=', 'liability_current')], limit=1).id,
-    #             })
-    #         ]
-    #     }
-    #     return self.env['account.move'].create(move_vals)
-    
 
     @api.depends(
         'supplier_product_cost_ids', 
         'document_cost_ids', 
-        'other_costs',
+        'other_cost_ids',
     )
     def _compute_total_costs(self):
         for order in self:
@@ -297,23 +247,23 @@ class SaleOrder(models.Model):
             
             # Quy đổi giá của các sản phẩm về VND
             for supplier_product_cost in order.supplier_product_cost_ids:
-                if supplier_product_cost.currency_id != self.env.ref('base.vnd'):
-                    rate = self._get_current_usd_vnd_rate() if supplier_product_cost.currency_id == self.env.ref('base.usd') else 1
-                    total_supplier_product_cost += supplier_product_cost.cost * rate.rate
+                if supplier_product_cost.currency_id != self.env.ref('base.VND'):
+                    rate = order.usd_vnd_rate if supplier_product_cost.currency_id == self.env.ref('base.USD') else 1
+                    total_supplier_product_cost += supplier_product_cost.cost * rate
                 else:
                     total_supplier_product_cost += supplier_product_cost.cost
             
             for document_cost in order.document_cost_ids:
-                if document_cost.currency_id != self.env.ref('base.vnd'):
-                    rate = self._get_current_usd_vnd_rate() if document_cost.currency_id == self.env.ref('base.usd') else self._get_current_rmb_vnd_rate()
-                    total_document_cost += document_cost.cost * rate.rate
+                if document_cost.currency_id != self.env.ref('base.VND'):
+                    rate = order.usd_vnd_rate if document_cost.currency_id == self.env.ref('base.USD') else order.rmb_vnd_rate
+                    total_document_cost += document_cost.cost * rate
                 else:
                     total_document_cost += document_cost.cost
             
             for other_cost in order.other_cost_ids:
-                if other_cost.currency_id != self.env.ref('base.vnd'):
-                    rate = self._get_current_usd_vnd_rate() if document_cost.currency_id == self.env.ref('base.usd') else self._get_current_rmb_vnd_rate()
-                    total_other_costs += other_cost.cost * rate.rate
+                if other_cost.currency_id != self.env.ref('base.VND'):
+                    rate = order.usd_vnd_rate if document_cost.currency_id == self.env.ref('base.USD') else order.rmb_vnd_rate
+                    total_other_costs += other_cost.cost * rate
                 else:
                     total_other_costs += other_cost.cost
             
@@ -326,7 +276,9 @@ class SaleOrder(models.Model):
         'amount_total', 
         'total_amount_vnd',
         'total_all_costs', 
-        'china_partner_adjustment'
+        'china_partner_adjustment',
+        'china_partner_cash_conversion',
+        'is_received_rmb'
     )
     def _compute_revenue_details(self):
         for order in self:
@@ -336,11 +288,8 @@ class SaleOrder(models.Model):
             )
             # Tổng lợi nhuận
             order.total_profit = order.total_revenue - order.total_all_costs
-            # Tỷ lệ lợi nhuận
-            order.profit_percentage = (
-                (order.total_profit / order.total_revenue) * 100 
-                if order.total_revenue > 0 else 0
-            )
+            if order.is_received_rmb:
+                order.total_profit += order.china_partner_cash_conversion*order.rmb_vnd_rate
 
     def action_confirm(self):
         """

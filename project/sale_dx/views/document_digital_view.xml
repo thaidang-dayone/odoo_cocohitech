@@ -5,6 +5,7 @@
         <field name="arch" type="xml">
             <tree string="Document Digital" editable="bottom">
                 <field name="name"/>
+                <field name="currency_id" />
                 <field name="description"/>
                 <field name="active"/>
             </tree>
