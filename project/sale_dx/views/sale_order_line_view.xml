@@ -1,0 +1,12 @@
+<!--<odoo>-->
+<!--    <record id="view_order_line_form_readonly_custom" model="ir.ui.view">-->
+<!--        <field name="name">sale.order.line.form.readonly.custom</field>-->
+<!--        <field name="model">sale.order.line</field>-->
+<!--        <field name="inherit_id" ref="sale.sale_order_line_view_form_readonly"/>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <xpath expr="//field[@name='price_unit']" position="after">-->
+<!--                <field name="unit_type_id" widget="many2one"/>-->
+<!--            </xpath>-->
+<!--        </field>-->
+<!--    </record>-->
+<!--</odoo>-->

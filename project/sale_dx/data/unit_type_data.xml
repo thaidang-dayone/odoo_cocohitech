@@ -1,0 +1,20 @@
+<odoo>
+    <record id="unit_type_ton" model="unit.type">
+        <field name="name">Tấn</field>
+    </record>
+    <record id="unit_type_container" model="unit.type">
+        <field name="name">Container</field>
+    </record>
+    <record id="unit_type_kg" model="unit.type">
+        <field name="name">Kilogram</field>
+    </record>
+    <record id="unit_type_carpet" model="unit.type">
+        <field name="name">Thảm</field>
+    </record>
+    <record id="unit_type_sheet" model="unit.type">
+        <field name="name">Tấm</field>
+    </record>
+    <record id="unit_type_meter" model="unit.type">
+        <field name="name">Mét</field>
+    </record>
+</odoo>

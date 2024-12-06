@@ -3,68 +3,86 @@
     <record id="view_order_form_inherit_custom" model="ir.ui.view">
         <field name="name">sale.order.form.inherit.custom</field>
         <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale.view_order_form" />
+        <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
 
+                <!-- Field chọn quốc gia -->
+                <field name="x_country" string="Select a country"/>
+
+                <!-- Field mã khách hàng -->
+                <field name="x_customer_code" string="Customer code"/>
+
+                <!-- Field hợp đồng (contract) -->
+                <field name="x_contract" string="Contract code"/>
+                <field name="contract_name" string="Contract Name"/>
+            </xpath>
+            <xpath expr="//field[@name='payment_term_id']" position="replace">
+
+                <field name="payment_term_custom" string="Payment Term"/>
+                <field name="agency" string="Agency"/>
+                <field name="bl_no" string="B/L No"/>
+
+            </xpath>
             <xpath expr="//field[@name='state']" position="after">
                 <field name="state_transfer"
-                    string="State Transfer"
-                    invisible="state != 'sale'"
-                    widget="statusbar"
+                       string="State Transfer"
+                       invisible="state != 'sale'"
+                       widget="statusbar"
                 />
                 <field name="color_report"
-                    widget="limited_color_picker"
-                    class="o_colorlist_limit"
-                    invisible="state_transfer != 'reported'"
+                       widget="limited_color_picker"
+                       class="o_colorlist_limit"
+                       invisible="state_transfer != 'reported'"
                 />
             </xpath>
 
             <xpath expr="//header" position="inside">
                 <button name="action_to_ready_to_pick"
-                    string="Pull cont"
-                    type="object"
-                    invisible="state_transfer!='draft_cont' or state!='sale' "
+                        string="Pull cont"
+                        type="object"
+                        invisible="state_transfer!='draft_cont' or state!='sale' "
                 />
 
                 <button name="action_to_packed"
-                    string="Full pack"
-                    type="object"
-                    invisible="state_transfer != 'ready_to_pick'"
+                        string="Full pack"
+                        type="object"
+                        invisible="state_transfer != 'ready_to_pick'"
                 />
 
                 <button name="action_to_ready_to_ship"
-                    string="Ready to ship"
-                    type="object"
-                    invisible="state_transfer != 'packed'"
+                        string="Ready to ship"
+                        type="object"
+                        invisible="state_transfer != 'packed'"
                 />
 
                 <button name="action_to_reported"
-                    string="Reported"
-                    type="object"
-                    invisible="state_transfer != 'ready_to_ship'"
+                        string="Reported"
+                        type="object"
+                        invisible="state_transfer != 'ready_to_ship'"
                 />
 
                 <button name="action_to_ready_to_load"
-                    string="Ready to load"
-                    type="object"
-                    invisible="state_transfer != 'reported'"
+                        string="Ready to load"
+                        type="object"
+                        invisible="state_transfer != 'reported'"
                 />
 
                 <button name="action_to_exported"
-                    string="Exported"
-                    type="object"
-                    invisible="state_transfer != 'ready_to_load'"
+                        string="Exported"
+                        type="object"
+                        invisible="state_transfer != 'ready_to_load'"
                 />
 
             </xpath>
 
             <xpath expr="//field[@name='tax_totals']" position="after">
                 <field name="total_amount_vnd" colspan="2" readonly="1"
-                    options="{'no_symbol': True}" />
-                <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}" />
+                       options="{'no_symbol': True}"/>
+                <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
                 <field name="china_partner_cash_conversion" string="Total Receive RMB" colspan="2"
-                    readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb" />
-                <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}" />
+                       readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb"/>
+                <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}"/>
             </xpath>
             <!-- <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']"
             position="after">
@@ -72,31 +90,65 @@
             </xpath> -->
             <xpath expr="//group[@name='order_details']" position="after">
                 <group name="financial_details">
-                    <group string="Exchange Rates">
-                        <field name="is_china_partner" invisible="0" />
-                        <field name="usd_vnd_rate" />
-                        <field name="rmb_vnd_rate" invisible="not is_china_partner" />
-                        <field name="rmb_usd_rate" invisible="not is_china_partner" />
+                    <group string="First Exchange Rates">
+                        <field name="is_china_partner" invisible="0"/>
+                        <field name="usd_vnd_rate"/>
+                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
                     </group>
-                    <group string="Payment Details" invisible="not is_china_partner">
-                        <field name="deposit_amount" />
-                        <field name="remaining_amount" readonly="1" />
+                    <group string="First Payment Details" invisible="not is_china_partner">
+                        <field name="deposit_amount"/>
+                        <field name="remaining_amount" readonly="1"/>
+                        <field name="china_fee" string="Expense in China"/>
+                        <div style="display: flex; gap: 10px;">
+                            <button name="action_confirm_payment_step_1" string="Confirm Payment" type="object" class="oe_highlight"/>
+                            <button name="action_confirm_payment_step_2" string="Proceed to Payment 2" type="object" class="oe_highlight"/>
+                        </div>
                     </group>
+                    <group string="Second Exchange Rates">
+                        <field name="is_china_partner" invisible="0"/>
+                        <field name="usd_vnd_rate"/>
+                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+                    </group>
+                     <group string="Second Payment Details" modifiers="{'invisible': [('payment_step', '!=', 1)]}">
+                        <field name="deposit_amount_2"/>
+                        <field name="china_fee_2"/>
+                        <div style="display: flex; gap: 10px;">
+                            <button name="action_confirm_payment_step_2" string="Confirm Second Payment" type="object" class="oe_highlight"/>
+                            <button name="action_confirm_payment_step_3" string="Proceed to Payment 3" type="object" class="oe_highlight"/>
+                        </div>
+                    </group>
+                    <group string="Third Exchange Rates">
+                        <field name="is_china_partner" invisible="0"/>
+                        <field name="usd_vnd_rate"/>
+                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+                    </group>
+                     <group string="Third Payment Detail" modifiers="{'invisible': [('payment_step', '!=', 2)]}">>
+                        <field name="deposit_amount_3"/>
+                        <field name="china_fee_3"/>
+                        <div>
+                            <button name="action_confirm_payment_step_3" string="Confirm Third Payment" type="object" class="oe_highlight"/>
+                        </div>
+                    </group>
+
                 </group>
             </xpath>
             <xpath expr="//page[@name='order_lines']" position="after">
                 <!-- Costs Tab -->
                 <page string="Costs" name="total_costs">
                     <group>
-                        <field name="supplier_id" domain="[('is_supplier','=', True)]" />
+                        <field name="supplier_id" domain="[('is_supplier','=', True)]"/>
                         <field name="supplier_product_cost_ids">
                             <tree editable="bottom">
-                                <field name="supplier_id" optional="hide" />
-                                <field name="supplier_product_id" />
-                                <field name="quantity" />
-                                <field name="price" />
-                                <field name="currency_id" />
-                                <field name="cost" sum="Total" />
+                                <field name="supplier_id" optional="hide"/>
+                                <field name="supplier_product_id"/>
+                                <field name="quantity"/>
+                                <field name="price"/>
+                                <field name="currency_id"/>
+                                <field name="uom_id"/>
+                                <field name="cost" sum="Total"/>
                             </tree>
                         </field>
                     </group>
@@ -104,61 +156,104 @@
                     <group>
                         <field name="document_cost_ids">
                             <tree editable="bottom">
-                                <field name="document_id" readonly="state == 'sale'" />
-                                <field name="document_file" readonly="state == 'sale'" />
-                                <field name="state" readonly="1" />
-                                <field name="currency_id" readonly="state == 'sale'" />
-                                <field name="cost" readonly="state == 'sale'" />
+                                <field name="document_id" readonly="state == 'sale'"/>
+                                <field name="document_file" readonly="state == 'sale'"/>
+                                <field name="state" readonly="1"/>
+                                <field name="currency_id" readonly="state == 'sale'"/>
+                                <field name="cost" readonly="state == 'sale'"/>
                                 <button name="action_done" type="object" icon="fa-check"
-                                    aria-label="Done" title="Done" class="float-end pe-0"
-                                    readonly="True" invisible="state in ['sale','cancel']" />
+                                        aria-label="Done" title="Done" class="float-end pe-0"
+                                        readonly="True" invisible="state in ['sale','cancel']"/>
                                 <button name="action_cancel" type="object" icon="fa-undo"
-                                    aria-label="Cancel" title="Cancel" class="float-end pe-0"
-                                    readonly="True" invisible="state in ['sale','cancel']" />
+                                        aria-label="Cancel" title="Cancel" class="float-end pe-0"
+                                        readonly="True" invisible="state in ['sale','cancel']"/>
                             </tree>
                         </field>
-                    </group>
 
+                    </group>
+                    <group name="note_group" col="6" class="mt-2 mt-md-0">
+                        <group colspan="4">
+                            <field name="note" readonly="1" nolabel="1"/>
+                        </group>
+                        <group class="oe_subtotal_footer" colspan="2" name="sale_total">
+                            <field name="total_document_cost" string="Total Document Costs(VND)"
+                                   options="{'no_symbol': True}"/>
+                        </group>
+                        <div class="clearfix"/>
+                    </group>
                     <group>
                         <field name="other_cost_ids">
                             <tree editable="bottom">
-                                <field name="name" />
-                                <field name="cost_type" />
-                                <field name="currency_id" />
-                                <field name="cost" />
-                                <field name="description" />
+                                <field name="name"/>
+                                <field name="cost_type"/>
+                                <field name="description"/>
+                                <field name="currency_id"/>
+                                <field name="quantity"/>
+                                <field name="unit_price"/>
+                                <field name="cost"/>
+                                <field name="cost_vnd"/>
+
                             </tree>
                         </field>
+
+                    </group>
+                    <group name="note_group" col="6" class="mt-2 mt-md-0">
+                        <group colspan="4">
+                            <field name="note" readonly="1" nolabel="1"/>
+                        </group>
+                        <group class="oe_subtotal_footer" colspan="2" name="sale_total">
+                            <field name="other_costs" string="Total Other Costs(VND)" options="{'no_symbol': True}"/>
+                        </group>
+                        <div class="clearfix"/>
                     </group>
 
-                    <group>
-                        <field name="total_document_cost" options="{'no_symbol': True}" />
-                        <field name="total_supplier_product_cost" options="{'no_symbol': True}" />
-                        <field name="other_costs" options="{'no_symbol': True}" />
+                    <group name="note_group" col="6" class="mt-5 mt-md-0">
+                        <group colspan="4">
+                            <field name="note" readonly="1" nolabel="1"/>
+                        </group>
+                        <group colspan="2" name="sale_total">
+                            <group class="total-mt-2">
+                                <field name="total_supplier_product_cost" options="{'no_symbol': True}"/>
+                                <field name="total_document_cost" options="{'no_symbol': True}"/>
+                                <field name="other_costs" options="{'no_symbol': True}"/>
+                            </group>
+                            <group class="border-top ml-2" colspan="2" name="sale_total">
+                                <field name="total_all_costs" options="{'no_symbol': True}"
+                                       string="Total costs(VND)       "/>
+                            </group>
+                        </group>
+                        <div class="clearfix"/>
                     </group>
+
+
                 </page>
 
                 <!-- Chinese Partner Special Processing Tab -->
                 <page string="China Partner Details" name="china_partner_details"
-                    invisible="not is_china_partner">
+                      invisible="not is_china_partner">
                     <group>
-                        <field name="china_partner_adjustment" />
-                        <field name="china_partner_cash_conversion" options="{'no_symbol': True}" />
-                        <field name="is_received_rmb" />
+                        <field name="china_partner_adjustment"/>
+                        <field name="china_partner_cash_conversion" options="{'no_symbol': True}"/>
+                        <field name="is_received_rmb"/>
                         <button name="confirm_receive_deposit"
-                            string="Receive Deposit"
-                            type="object"
-                            class="btn-primary"
-                            confirm="Are you sure you received from Chinese partner?" />
+                                string="Receive Deposit"
+                                type="object"
+                                class="btn-primary"
+                                confirm="Are you sure you received from Chinese partner?"/>
                     </group>
                 </page>
             </xpath>
 
             <xpath expr="//group[@name='order_details']" position="after">
                 <group string="Shipping Information">
-                    <field name="estimated_departure_date" />
-                    <field name="estimated_arrival_date" />
-                    <field name="is_overdue" />
+                    <field name="incoterms" />
+                    <field name="estimated_departure_date" string="ETD"/>
+                    <field name="estimated_arrival_date" string="ETA"/>
+                    <field name="pol" string="POL"/>
+                    <field name="pod" string="POD"/>
+                    <field name="via" string="VIA"/>
+                    <field name="tst" string="TST"/>
+                    <field name="is_overdue"/>
                 </group>
             </xpath>
 
@@ -168,10 +263,10 @@
     <record id="view_order_tree_decorate" model="ir.ui.view">
         <field name="name">sale.order.tree.decorate</field>
         <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale.view_order_tree" />
+        <field name="inherit_id" ref="sale.view_order_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='invoice_status']" position="after">
-                <field name="is_overdue" optional="show" />
+                <field name="is_overdue" optional="show"/>
             </xpath>
             <xpath expr="//tree" position="attributes">
                 <attribute name="decoration-danger">is_overdue</attribute>
@@ -179,15 +274,15 @@
         </field>
     </record>
 
-    <record id="view_order_form_quote_inherit_custom" model="ir.ui.view">
-        <field name="name">sale.order.form.quote.inherit.custom</field>
-        <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale_management.sale_order_form_quote" />
-        <field name="arch" type="xml">
-            <xpath expr="//page[@name='optional_products']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-        </field>
-    </record>
+    <!--    <record id="view_order_form_quote_inherit_custom" model="ir.ui.view">-->
+    <!--        <field name="name">sale.order.form.quote.inherit.custom</field>-->
+    <!--        <field name="model">sale.order</field>-->
+    <!--        <field name="inherit_id" ref="sale_management.sale_order_form_quote"/>-->
+    <!--        <field name="arch" type="xml">-->
+    <!--            <xpath expr="//page[@name='optional_products']" position="attributes">-->
+    <!--                <attribute name="invisible">1</attribute>-->
+    <!--            </xpath>-->
+    <!--        </field>-->
+    <!--    </record>-->
 
 </odoo>
