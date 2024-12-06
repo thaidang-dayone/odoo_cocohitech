@@ -76,13 +76,110 @@
 
             </xpath>
 
-            <xpath expr="//field[@name='tax_totals']" position="after">
-                <field name="total_amount_vnd" colspan="2" readonly="1"
-                       options="{'no_symbol': True}"/>
-                <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
-                <field name="china_partner_cash_conversion" string="Total Receive RMB" colspan="2"
-                       readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb"/>
-                <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+
+            <xpath expr="//group[@name='note_group']" position="after">
+                <group name="total_group" col="6" class="mt-2 mt-md-0">
+                    <group colspan="2">
+
+                    </group>
+                    <group class="oe_subtotal_footer" colspan="2" name="sale_total_custom_vnd">
+                        <field name="china_partner_cash_conversion" string="Total Receive RMB" colspan="2"
+                               readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb"/>
+                        <field name="total_amount_vnd" colspan="2" readonly="1"
+                               options="{'no_symbol': True}"/>
+                        <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+
+                        <field name="total_all_costs" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                        <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                    </group>
+                    <group class="oe_subtotal_footer" colspan="2" name="sale_total_custom">
+
+                        <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+
+                        <field name="total_amount_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                        <field name="remaining_amount" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                        <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                    </group>
+                    <div class="clearfix"/>
+
+
+                </group>
+                <group string="Financial Table" col="6">
+                    <table class="o_table_full_width">
+                        <tr>
+                            <th style="min-width:200px;"></th>
+                            <th style="min-width:200px;">CNY</th>
+                            <th style="min-width:200px;">USD</th>
+                            <th style="min-width:200px;">VND</th>
+                        </tr>
+                        <tr>
+                            <td>Tiền ngoài (1)</td>
+                            <td>
+                                <field name="china_partner_cash_conversion" string="Total Receive RMB" colspan="2"
+                                       readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb"/>
+                            </td>
+                            <td>
+                                <field name="china_partner_cash_conversion" string="Total Receive RMB" colspan="2"
+                                       readonly="1" options="{'no_symbol': True}" invisible="not is_received_rmb"/>
+                            </td>
+                            <td>VND</td>
+                        </tr>
+                        <tr>
+                            <td>Sale (invoice) (2)</td>
+                            <td></td>
+                            <td>
+                                <field name="amount_total" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                            <td>
+                                <field name="total_amount_vnd" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total Revenue (3) = (1) + (2)</td>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <field name="total_revenue" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tổng tiền đã nhận (4)</td>
+                            <td></td>
+                            <td>
+
+                            </td>
+                            <td>
+                                <field name="total_amount_revenue" colspan="2" readonly="1"
+                                       options="{'no_symbol': True}"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Số tiền còn phải thu (3) - (4)</td>
+                            <td></td>
+                            <td>
+                                <field name="remaining_amount" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                            <td>VND</td>
+                        </tr>
+                        <tr>
+                            <td>Total Cost</td>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <field name="total_all_costs" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>Total Profit</td>
+                            <td>*</td>
+                            <td>*</td>
+                            <td>
+                                <field name="total_profit" colspan="2" readonly="1" options="{'no_symbol': True}"/>
+                            </td>
+                        </tr>
+                    </table>
+                </group>
             </xpath>
             <!-- <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']"
             position="after">
@@ -92,45 +189,55 @@
                 <group name="financial_details">
                     <group string="First Exchange Rates">
                         <field name="is_china_partner" invisible="0"/>
-                        <field name="usd_vnd_rate"/>
-                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
-                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+                        <field name="usd_vnd_rate_1"/>
+                        <field name="rmb_vnd_rate_1" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate_1" invisible="not is_china_partner"/>
                     </group>
-                    <group string="First Payment Details" invisible="not is_china_partner">
+                    <group string="First Payment Details">
                         <field name="deposit_amount"/>
-                        <field name="remaining_amount" readonly="1"/>
-                        <field name="china_fee" string="Expense in China"/>
-                        <div style="display: flex; gap: 10px;">
-                            <button name="action_confirm_payment_step_1" string="Confirm Payment" type="object" class="oe_highlight"/>
-                            <button name="action_confirm_payment_step_2" string="Proceed to Payment 2" type="object" class="oe_highlight"/>
-                        </div>
+
+                        <field name="china_fee" string="Transaction cost"/>
+                        <field name="payment_1_button" string="Payment Successful"/>
+                        <!--                        <div style="display: flex; gap: 10px;">-->
+                        <!--                            <button name="action_confirm_payment_step_1" string="Confirm" type="object"-->
+                        <!--                                    class="oe_highlight"/>-->
+                        <!--                            &lt;!&ndash;                            <button name="action_confirm_payment_step_2" string="Proceed to Payment 2" type="object" class="oe_highlight"/>&ndash;&gt;-->
+                        <!--                        </div>-->
                     </group>
-                    <group string="Second Exchange Rates">
-                        <field name="is_china_partner" invisible="0"/>
-                        <field name="usd_vnd_rate"/>
-                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
-                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+
+                    <group string="Second Exchange Rates" invisible="not payment_1_button">
+
+                        <field name="usd_vnd_rate_2"/>
+                        <field name="rmb_vnd_rate_2" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate_2" invisible="not is_china_partner"/>
+
                     </group>
-                     <group string="Second Payment Details" modifiers="{'invisible': [('payment_step', '!=', 1)]}">
+                    <group string="Second Payment Details" invisible="not payment_1_button">
                         <field name="deposit_amount_2"/>
-                        <field name="china_fee_2"/>
-                        <div style="display: flex; gap: 10px;">
-                            <button name="action_confirm_payment_step_2" string="Confirm Second Payment" type="object" class="oe_highlight"/>
-                            <button name="action_confirm_payment_step_3" string="Proceed to Payment 3" type="object" class="oe_highlight"/>
-                        </div>
+                        <field name="china_fee_2" string="Transaction cost"/>
+                        <field name="payment_2_button" string="Payment Successful"/>
+                        <!--                        <div style="display: flex; gap: 10px;">-->
+                        <!--                            <button name="action_confirm_payment_step_2" string="Confirm " type="object"-->
+                        <!--                                    class="oe_highlight"/>-->
+                        <!--                            &lt;!&ndash;                            <button name="action_confirm_payment_step_3" string="Proceed to Payment 3" type="object" class="oe_highlight"/>&ndash;&gt;-->
+                        <!--                        </div>-->
                     </group>
-                    <group string="Third Exchange Rates">
-                        <field name="is_china_partner" invisible="0"/>
-                        <field name="usd_vnd_rate"/>
-                        <field name="rmb_vnd_rate" invisible="not is_china_partner"/>
-                        <field name="rmb_usd_rate" invisible="not is_china_partner"/>
+                    <group string="Third Exchange Rates" invisible="not payment_2_button">
+
+                        <field name="usd_vnd_rate_3"/>
+                        <field name="rmb_vnd_rate_3" invisible="not is_china_partner"/>
+                        <field name="rmb_usd_rate_3" invisible="not is_china_partner"/>
                     </group>
-                     <group string="Third Payment Detail" modifiers="{'invisible': [('payment_step', '!=', 2)]}">>
+                    <group string="Third Payment Detail" invisible="not payment_2_button">>
                         <field name="deposit_amount_3"/>
-                        <field name="china_fee_3"/>
-                        <div>
-                            <button name="action_confirm_payment_step_3" string="Confirm Third Payment" type="object" class="oe_highlight"/>
-                        </div>
+                        <field name="china_fee_3" string="Transaction cost"/>
+                        <field name="payment_3_button" string="Payment Successful"/>
+                    </group>
+                    <group>
+
+                    </group>
+                    <group>
+                        <field name="remaining_amount" readonly="1"/>
                     </group>
 
                 </group>
@@ -147,7 +254,7 @@
                                 <field name="quantity"/>
                                 <field name="price"/>
                                 <field name="currency_id"/>
-                                <field name="uom_id"/>
+                                <field name="uom_id" string="UoM"/>
                                 <field name="cost" sum="Total"/>
                             </tree>
                         </field>
@@ -212,14 +319,14 @@
                             <field name="note" readonly="1" nolabel="1"/>
                         </group>
                         <group colspan="2" name="sale_total">
-                            <group class="total-mt-2">
+                            <group class="total-mt-2" colspan="2">
                                 <field name="total_supplier_product_cost" options="{'no_symbol': True}"/>
                                 <field name="total_document_cost" options="{'no_symbol': True}"/>
                                 <field name="other_costs" options="{'no_symbol': True}"/>
                             </group>
-                            <group class="border-top ml-2" colspan="2" name="sale_total">
+                            <group class="border-top" colspan="2" name="sale_total">
                                 <field name="total_all_costs" options="{'no_symbol': True}"
-                                       string="Total costs(VND)       "/>
+                                       string="Total costs(VND)"/>
                             </group>
                         </group>
                         <div class="clearfix"/>
@@ -235,18 +342,18 @@
                         <field name="china_partner_adjustment"/>
                         <field name="china_partner_cash_conversion" options="{'no_symbol': True}"/>
                         <field name="is_received_rmb"/>
-                        <button name="confirm_receive_deposit"
-                                string="Receive Deposit"
-                                type="object"
-                                class="btn-primary"
-                                confirm="Are you sure you received from Chinese partner?"/>
+                        <!--                        <button name="confirm_receive_deposit"-->
+                        <!--                                string="Receive Deposit"-->
+                        <!--                                type="object"-->
+                        <!--                                class="btn-primary"-->
+                        <!--                                confirm="Are you sure you received from Chinese partner?"/>-->
                     </group>
                 </page>
             </xpath>
 
             <xpath expr="//group[@name='order_details']" position="after">
                 <group string="Shipping Information">
-                    <field name="incoterms" />
+                    <field name="incoterms"/>
                     <field name="estimated_departure_date" string="ETD"/>
                     <field name="estimated_arrival_date" string="ETA"/>
                     <field name="pol" string="POL"/>

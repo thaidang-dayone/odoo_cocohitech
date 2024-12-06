@@ -31,11 +31,7 @@ class SaleOrder(models.Model):
         string='Other Costs'
     )
     # Exchange Rates
-    usd_vnd_rate = fields.Float(
-        string='USD/VND Exchange Rate',
-        digits=(12, 2),
-        default=lambda self: self._get_current_usd_vnd_rate()
-    )
+
     # Deposit and Remaining Amount
     deposit_amount = fields.Monetary(
         string='Deposit Amount',
@@ -52,17 +48,51 @@ class SaleOrder(models.Model):
         related='partner_id.is_china_partner',
         string='Is Chinese Partner'
     )
-    rmb_vnd_rate = fields.Float(
-        string='RMB/VND Exchange Rate',
+    usd_vnd_rate_1 = fields.Float(
+        string='USD/VND Exchange Rate 1',
+        digits=(12, 2),
+        default=lambda self: self._get_current_usd_vnd_rate()
+    )
+    rmb_vnd_rate_1 = fields.Float(
+        string='RMB/VND Exchange Rate 1',
         digits=(12, 2),
         default=lambda self: self._get_current_rmb_vnd_rate()
     )
-    rmb_usd_rate = fields.Float(
-        string='RMB/USD Exchange Rate',
+    rmb_usd_rate_1 = fields.Float(
+        string='RMB/USD Exchange Rate 1',
         digits=(12, 2),
         default=lambda self: self._get_current_rmb_usd_rate()
     )
-
+    usd_vnd_rate_2 = fields.Float(
+        string='USD/VND Exchange Rate 2',
+        digits=(12, 2),
+        default=lambda self: self._get_current_usd_vnd_rate()
+    )
+    rmb_vnd_rate_2 = fields.Float(
+        string='RMB/VND Exchange Rate 2',
+        digits=(12, 2),
+        default=lambda self: self._get_current_rmb_vnd_rate()
+    )
+    rmb_usd_rate_2 = fields.Float(
+        string='RMB/USD Exchange Rate 2',
+        digits=(12, 2),
+        default=lambda self: self._get_current_rmb_usd_rate()
+    )
+    usd_vnd_rate_3 = fields.Float(
+        string='USD/VND Exchange Rate 3',
+        digits=(12, 2),
+        default=lambda self: self._get_current_usd_vnd_rate()
+    )
+    rmb_vnd_rate_3 = fields.Float(
+        string='RMB/VND Exchange Rate 3',
+        digits=(12, 2),
+        default=lambda self: self._get_current_rmb_vnd_rate()
+    )
+    rmb_usd_rate_3 = fields.Float(
+        string='RMB/USD Exchange Rate 3',
+        digits=(12, 2),
+        default=lambda self: self._get_current_rmb_usd_rate()
+    )
     # Chinese Customer Special Processing
     china_partner_adjustment = fields.Monetary(
         string='China Partner Price Adjustment',
@@ -115,7 +145,11 @@ class SaleOrder(models.Model):
         compute='_compute_price_convert_totals',
         store=True
     )
-
+    total_amount_revenue = fields.Monetary(
+        string='Total Amount Revenue',
+        compute='_compute_totals_revenue_price',
+        store=True
+    )
     state_transfer = fields.Selection([
         ('draft_cont', 'Lấy rỗng'),
         ('ready_to_pick', 'Kéo cont tới kho'),
@@ -141,8 +175,7 @@ class SaleOrder(models.Model):
     pol = fields.Char(string='POL (Place of Loading)')
     pod = fields.Char(string='POD (Place of Delivery)')
     via = fields.Char(string='VIA (Transit Point)')
-    tst = fields.Char(string='VIA (Transit Point)')
-
+    tst = fields.Integer(string='Transit Time', compute='_compute_transit_time', store=True)
     incoterms = fields.Selection(
         [('exw', 'EXW (Ex Works)'),
          ('fob', 'FOB (Free On Board)'),
@@ -190,60 +223,75 @@ class SaleOrder(models.Model):
         currency_field='currency_id'
     )
     china_fee_2 = fields.Monetary(string='Phí tại Trung Quốc', currency_field='currency_id',
-                                help='Fee in China (for Sale use only).')
+                                  help='Fee in China (for Sale use only).')
 
     china_fee_3 = fields.Monetary(string='Phí tại Trung Quốc', currency_field='currency_id',
-                                help='Fee in China (for Sale use only).')
+                                  help='Fee in China (for Sale use only).')
     payment_2_button = fields.Boolean(string='Show Payment 2 Button', default=False)
 
     payment_3_button = fields.Boolean(string='Show Payment 3 Button', default=False)
 
-    @api.onchange('deposit_amount', 'china_fee')
-    # def _compute_remaining_amount(self):
-    #     for order in self:
-    #         order.remaining_amount = order.amount_total - order.deposit_amount - order.china_fee
+    payment_1_button = fields.Boolean(string='Show Payment 1 Button', default=False)
+    @api.depends('estimated_departure_date', 'estimated_arrival_date')
+    def _compute_transit_time(self):
+        for order in self:
+            if order.estimated_departure_date and order.estimated_arrival_date:
+                delta = order.estimated_arrival_date - order.estimated_departure_date
+                order.tst = delta.days
+            else:
+                order.tst = 0
 
-    def action_confirm_payment_step_1(self):
-        self.ensure_one()
-        self.payment_step = 1
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'First Payment Confirmed',
-                'message': 'Please send the bill in the comment section.',
-                'type': 'success',
-                'sticky': False,
-            },
-        }
-
-    def action_confirm_payment_step_2(self):
-        self.ensure_one()
-        self.payment_step = 2
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Second Payment Confirmed',
-                'message': 'Please send the bill in the comment section.',
-                'type': 'success',
-                'sticky': False,
-            },
-        }
-
-    def action_confirm_payment_step_3(self):
-        self.ensure_one()
-        self.payment_step = 3
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Third Payment Confirmed',
-                'message': 'Please send the bill in the comment section.',
-                'type': 'success',
-                'sticky': False,
-            },
-        }
+    # @api.onchange('deposit_amount', 'china_fee')
+    # # def _compute_remaining_amount(self):
+    # #     for order in self:
+    # #         order.remaining_amount = order.amount_total - order.deposit_amount - order.china_fee
+    # @api.onchange('payment_step')
+    # def action_confirm_payment_step_1(self):
+    #     self.ensure_one()
+    #     self.payment_step = 1
+    #     self.payment_2_button = True
+    #     print(self.payment_step)
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'First Payment Confirmed',
+    #             'message': 'Please send the bill in the comment section.',
+    #             'type': 'success',
+    #             'sticky': False,
+    #         },
+    #     }
+    #
+    # def action_confirm_payment_step_2(self):
+    #     self.ensure_one()
+    #     self.payment_step = 2
+    #     self.payment_3_button = True
+    #     print(self.payment_step)
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'Second Payment Confirmed',
+    #             'message': 'Please send the bill in the comment section.',
+    #             'type': 'success',
+    #             'sticky': False,
+    #         },
+    #     }
+    #
+    # def action_confirm_payment_step_3(self):
+    #     self.ensure_one()
+    #     self.payment_step = 3
+    #     print(self.payment_step)
+    #     return {
+    #         'type': 'ir.actions.client',
+    #         'tag': 'display_notification',
+    #         'params': {
+    #             'title': 'Third Payment Confirmed',
+    #             'message': 'Please send the bill in the comment section.',
+    #             'type': 'success',
+    #             'sticky': False,
+    #         },
+    #     }
 
     @api.depends('x_country', 'partner_id.name')
     def _compute_customer_code(self):
@@ -313,10 +361,10 @@ class SaleOrder(models.Model):
         self.state_transfer = 'exported'
 
     @api.depends_context('lang')
-    @api.depends('currency_id', 'amount_total', 'usd_vnd_rate')
+    @api.depends('currency_id', 'amount_total', 'usd_vnd_rate_1')
     def _compute_price_convert_totals(self):
         for order in self:
-            order.total_amount_vnd = order.amount_total * order.usd_vnd_rate
+            order.total_amount_vnd = order.amount_total * order.usd_vnd_rate_1
 
     @api.model_create_multi
     def create(self, vals):
@@ -345,10 +393,10 @@ class SaleOrder(models.Model):
                     'product_id': self.env.ref('sale_dx.product_product_consultant_deposit').id,
                 })
 
-    @api.depends('amount_total', 'deposit_amount')
+    @api.depends('amount_total', 'deposit_amount', 'deposit_amount_2', 'deposit_amount_3')
     def _compute_remaining_amount(self):
         for order in self:
-            order.remaining_amount = order.amount_total-order.deposit_amount
+            order.remaining_amount = order.amount_total - order.deposit_amount - order.deposit_amount_2 - order.deposit_amount_3
 
     def _get_current_usd_vnd_rate(self):
         # Implement logic to fetch current USD/VND rate
@@ -364,18 +412,18 @@ class SaleOrder(models.Model):
         return 0.14  # Example rate
 
     @api.depends('deposit_amount')
-    def _compute_china_partner_special_processing(self):
-        """
-        Special processing for Chinese partners
-        - Calculate cash conversion
-        """
-        for order in self:
-            if order.is_china_partner:
-                #     raise ValidationError("This method is only for Chinese partners")
-
-                # Store the price adjustment
-                order.china_partner_adjustment = order.deposit_amount
-                order.china_partner_cash_conversion = order.deposit_amount / order.rmb_usd_rate
+    # def _compute_china_partner_special_processing(self):
+    #     """
+    #     Special processing for Chinese partners
+    #     - Calculate cash conversion
+    #     """
+    #     for order in self:
+    #         if order.is_china_partner:
+    #             #     raise ValidationError("This method is only for Chinese partners")
+    #
+    #             # Store the price adjustment
+    #             order.china_partner_adjustment = order.deposit_amount
+    #             order.china_partner_cash_conversion = order.deposit_amount / order.rmb_usd_rate_1
 
     def confirm_receive_deposit(self):
         for order in self:
@@ -398,31 +446,31 @@ class SaleOrder(models.Model):
             # Quy đổi giá của các sản phẩm về VND
             for supplier_product_cost in order.supplier_product_cost_ids:
                 if supplier_product_cost.currency_id != self.env.ref('base.VND'):
-                    rate = order.usd_vnd_rate if supplier_product_cost.currency_id == self.env.ref('base.USD') else 1
+                    rate = order.usd_vnd_rate_1 if supplier_product_cost.currency_id == self.env.ref('base.USD') else 1
                     total_supplier_product_cost += supplier_product_cost.cost * rate
                 else:
                     total_supplier_product_cost += supplier_product_cost.cost
 
             for document_cost in order.document_cost_ids:
                 if document_cost.currency_id != self.env.ref('base.VND'):
-                    rate = order.usd_vnd_rate if document_cost.currency_id == self.env.ref(
-                        'base.USD') else order.rmb_vnd_rate
+                    rate = order.usd_vnd_rate_1 if document_cost.currency_id == self.env.ref(
+                        'base.USD') else order.rmb_vnd_rate_1
                     total_document_cost += document_cost.cost * rate
                 else:
                     total_document_cost += document_cost.cost
 
             for other_cost in order.other_cost_ids:
-                if other_cost.currency_id != self.env.ref('base.VND'):
-                    rate = order.usd_vnd_rate if document_cost.currency_id == self.env.ref(
-                        'base.USD') else order.rmb_vnd_rate
-                    total_other_costs += other_cost.cost * rate
-                else:
-                    total_other_costs += other_cost.cost
+                total_other_costs += other_cost.cost_vnd
 
             order.total_supplier_product_cost = total_supplier_product_cost
             order.total_document_cost = total_document_cost
             order.other_costs = total_other_costs
             order.total_all_costs = total_supplier_product_cost + total_document_cost + total_other_costs
+
+    @api.depends('remaining_amount', 'total_amount_vnd')
+    def _compute_totals_revenue_price(self):
+        for order in self:
+            order.total_amount_revenue = order.total_amount_vnd - order.remaining_amount * order.usd_vnd_rate_1
 
     @api.depends(
         'amount_total',
@@ -435,13 +483,13 @@ class SaleOrder(models.Model):
     def _compute_revenue_details(self):
         for order in self:
             # Tổng doanh thu (trừ điều chỉnh cho khách Trung Quốc nếu có)
-            order.total_revenue = order.total_amount_vnd - (
-                    order.china_partner_adjustment or 0
+            order.total_revenue = order.total_amount_vnd + (
+                    order.china_partner_adjustment * order.rmb_vnd_rate_1 or 0
             )
             # Tổng lợi nhuận
             order.total_profit = order.total_revenue - order.total_all_costs
             if order.is_received_rmb:
-                order.total_profit += order.china_partner_cash_conversion * order.rmb_vnd_rate
+                order.total_profit += order.china_partner_cash_conversion * order.rmb_vnd_rate_1
 
     def action_confirm(self):
         """

@@ -106,10 +106,10 @@ class OtherCosts(models.Model):
                 if record.currency_id.name == 'VND':
                     record.cost_vnd = record.cost
                 elif record.currency_id.name == 'USD':
-                    usd_vnd_rate = sale_order.usd_vnd_rate
+                    usd_vnd_rate = sale_order.usd_vnd_rate_1
                     record.cost_vnd = record.cost * usd_vnd_rate if usd_vnd_rate else 0.0
                 elif record.currency_id.name == 'CNY':
-                    rmb_vnd_rate = sale_order.rmb_vnd_rate
+                    rmb_vnd_rate = sale_order.rmb_vnd_rate_1
                     record.cost_vnd = record.cost * rmb_vnd_rate if rmb_vnd_rate else 0.0
                 else:
                     record.cost_vnd = 0.0  # Giá trị mặc định nếu không tìm thấy tỷ giá
